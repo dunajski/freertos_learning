@@ -1,0 +1,11 @@
+../Core/Src/main.c:92:5:main	8	static
+../Core/Src/main.c:173:6:SystemClock_Config	88	static
+../Core/Src/main.c:214:13:MX_USART2_UART_Init	8	static
+../Core/Src/main.c:262:13:MX_GPIO_Init	48	static
+../Core/Src/main.c:294:6:HAL_GPIO_EXTI_Falling_Callback	16	static
+../Core/Src/main.c:302:6:ToggleLEDThread	16	static
+../Core/Src/main.c:312:6:ChangeBlinkingRatio	8	static
+../Core/Src/main.c:320:6:ChangeBlinkingRatioThread	16	static
+../Core/Src/main.c:339:6:StartDefaultTask	16	static
+../Core/Src/main.c:358:6:HAL_TIM_PeriodElapsedCallback	16	static
+../Core/Src/main.c:375:6:Error_Handler	8	static,ignoring_inline_asm
