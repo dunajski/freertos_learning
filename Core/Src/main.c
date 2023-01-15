@@ -65,7 +65,15 @@ const osThreadAttr_t toggleLEDTask_attributes = {
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
+
 uint32_t blinking_ratio = 250; // 250 ms if OS tick is equal 1 ms
+osThreadId_t sendByteOverUartHandle;
+const osThreadAttr_t sendByteOverUarTask_attributes = {
+  .name = "sendUARTbyte",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4
+};
+uint8_t rec_character;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -73,11 +81,11 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void *argument);
-void ChangeBlinkingRatioThread(void *argument);
-void ToggleLEDThread(void *argument);
 
 /* USER CODE BEGIN PFP */
-
+void ChangeBlinkingRatioThread(void *argument);
+void ToggleLEDThread(void *argument);
+void SendBytOverUartThread(void *argument);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -115,7 +123,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_UART_Receive_IT(&huart2, &rec_character, sizeof(rec_character));
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -145,6 +153,7 @@ int main(void)
   /* add threads, ... */
   blinkingRatioThreadHandle = osThreadNew(ChangeBlinkingRatioThread, NULL, &blinkingRatioTask_attributes);
   toggleLEDThreadHandle = osThreadNew(ToggleLEDThread, NULL, &toggleLEDTask_attributes);
+  sendByteOverUartHandle = osThreadNew(SendBytOverUartThread, NULL, &sendByteOverUarTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -296,6 +305,8 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
   if (GPIO_Pin == BLUE_BUTTON_Pin)
   {
     osThreadFlagsSet(blinkingRatioThreadHandle, BIT_1);
+    osThreadFlagsSet(sendByteOverUartHandle, BIT_1);
+
   }
 }
 
@@ -325,6 +336,44 @@ void ChangeBlinkingRatioThread(void * argument)
     osThreadFlagsWait(BIT_1, osFlagsWaitAny, osWaitForever);
 
     ChangeBlinkingRatio();
+  }
+}
+
+const uint8_t button_press_str[] = "Button pressed\r\n";
+const uint8_t data_rec_str[] = "received sth\r\n";
+const uint8_t data_rec_e_str[] = "received e\r\n";
+
+void SendBytOverUartThread(void *argument)
+{
+  (void) argument;
+  uint32_t events = 0;
+  for (;;)
+  {
+    events = osThreadFlagsWait(BIT_0 | BIT_1, osFlagsWaitAny, osWaitForever);
+
+    switch (events)
+    {
+      case BIT_0:
+        if (rec_character == 'e')
+          HAL_UART_Transmit(&huart2, data_rec_e_str, sizeof(data_rec_e_str), 500);
+        else
+          HAL_UART_Transmit(&huart2, data_rec_str, sizeof(data_rec_str), 500);
+        break;
+      case BIT_1:
+        HAL_UART_Transmit(&huart2, button_press_str, sizeof(button_press_str), 500);
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  if (huart->Instance == USART2)
+  {
+    osThreadFlagsSet(sendByteOverUartHandle, BIT_0);
+    HAL_UART_Receive_IT(&huart2, &rec_character, sizeof(rec_character));
   }
 }
 /* USER CODE END 4 */
