@@ -70,12 +70,24 @@ const osThreadAttr_t toggleLEDTask_attributes = {
 
 uint32_t blinking_ratio = 250; // 250 ms if OS tick is equal 1 ms
 osThreadId_t sendByteOverUartHandle;
-const osThreadAttr_t sendByteOverUarTask_attributes = {
+const osThreadAttr_t sendByteOverUartTask_attributes = {
   .name = "sendUARTbyte",
   .priority = (osPriority_t) osPriorityNormal,
   .stack_size = 128 * 4
 };
 uint8_t rec_character;
+
+// accel - accelerometer
+osThreadId_t accelServiceHandle;
+const osThreadAttr_t accelServiceTask_attributes = {
+  .name = "accelerometer service",
+  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 128 * 4 // TODO bigger stack??? check with watermark
+};
+typedef enum {
+  INIT = 0,
+} accel_state_t;
+accel_state_t accel_state = INIT;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,6 +101,7 @@ void StartDefaultTask(void *argument);
 void ChangeBlinkingRatioThread(void *argument);
 void ToggleLEDThread(void *argument);
 void SendBytOverUartThread(void *argument);
+void AccelServiceThread(void * argument);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -157,7 +170,8 @@ int main(void)
   /* add threads, ... */
   blinkingRatioThreadHandle = osThreadNew(ChangeBlinkingRatioThread, NULL, &blinkingRatioTask_attributes);
   toggleLEDThreadHandle = osThreadNew(ToggleLEDThread, NULL, &toggleLEDTask_attributes);
-  sendByteOverUartHandle = osThreadNew(SendBytOverUartThread, NULL, &sendByteOverUarTask_attributes);
+  sendByteOverUartHandle = osThreadNew(SendBytOverUartThread, NULL, &sendByteOverUartTask_attributes);
+  accelServiceHandle = osThreadNew(AccelServiceThread, NULL, &accelServiceTask_attributes);
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -431,6 +445,31 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     HAL_UART_Receive_IT(&huart2, &rec_character, sizeof(rec_character));
   }
 }
+
+void AccelMachineState(void)
+{
+  switch (accel_state)
+  {
+  case INIT:
+  break;
+
+  // TODO add more states according to datasheet
+
+  default:
+  break;
+  }
+}
+
+void AccelServiceThread(void *argument)
+{
+  (void) argument;
+  for (;;)
+  {
+    AccelMachineState();
+  }
+
+}
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
