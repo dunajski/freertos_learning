@@ -1,4 +1,6 @@
 "./Core/Src/app_freertos.o"
+"./Core/Src/lis3dh_example.o"
+"./Core/Src/lis3dh_reg.o"
 "./Core/Src/main.o"
 "./Core/Src/stm32g0xx_hal_msp.o"
 "./Core/Src/stm32g0xx_hal_timebase_tim.o"
