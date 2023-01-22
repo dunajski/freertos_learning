@@ -20,6 +20,9 @@
 #include "lis3dh_reg.h"
 #include <lis3dh_example.h>
 #include <stdint.h>
+#include "main.h"
+#include "cmsis_os.h"
+#include <stdbool.h>
 
 #include "stm32g0xx_hal.h"
 #include "stm32g071xx.h"
@@ -48,10 +51,12 @@ static int32_t platform_read(void *handle, uint8_t reg, uint8_t *bufp,
 static void tx_com(uint8_t *tx_buffer, uint16_t len);
 
 /* Main Example --------------------------------------------------------------*/
-void lis3dh_read_fifo(void)
+
+static stmdev_ctx_t dev_ctx;
+
+accel_state_t lis3dh_init(void)
 {
   /* Initialize mems driver interface */
-  stmdev_ctx_t dev_ctx;
   dev_ctx.write_reg = platform_write;
   dev_ctx.read_reg = platform_read;
   dev_ctx.handle = &SENSOR_BUS;
@@ -64,7 +69,7 @@ void lis3dh_read_fifo(void)
     tx_com(tx_buffer, strlen((char const *)tx_buffer));
     while (1)
     {
-      /* manage here device not found */
+      return ACC_ERROR;
     }
   }
 
@@ -84,34 +89,39 @@ void lis3dh_read_fifo(void)
   /* Enable FIFO */
   lis3dh_fifo_set(&dev_ctx, PROPERTY_ENABLE);
 
-  while (1)
+  return ACC_RUNNING;
+}
+
+bool lis3dh_is_samples_ready(void)
+{
+  uint8_t flags;
+  /* Check if FIFO level over threshold */
+  lis3dh_fifo_fth_flag_get(&dev_ctx, &flags);
+
+  if (flags) return true;
+  else return false;
+}
+
+void lis3dh_read_fifo(void)
+{
+  uint8_t num;
+  /* Read number of sample in FIFO */
+  lis3dh_fifo_data_level_get(&dev_ctx, &num);
+
+  while (num-- > 0)
   {
-    uint8_t flags;
-    uint8_t num = 0;
-    /* Check if FIFO level over threshold */
-    lis3dh_fifo_fth_flag_get(&dev_ctx, &flags);
-
-    if (flags)
-    {
-      /* Read number of sample in FIFO */
-      lis3dh_fifo_data_level_get(&dev_ctx, &num);
-
-      while (num-- > 0)
-      {
-        /* Read XL samples */
-        lis3dh_acceleration_raw_get(&dev_ctx, data_raw_acceleration);
-        acceleration_mg[0] =
-            lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[0]);
-        acceleration_mg[1] =
-            lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[1]);
-        acceleration_mg[2] =
-            lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[2]);
-        sprintf((char *)tx_buffer,
-                "Acceleration [mg]:%5.0f\t%5.0f\t%5.0f\r\n",
-                acceleration_mg[0], acceleration_mg[1], acceleration_mg[2]);
-        tx_com(tx_buffer, strlen((char const *)tx_buffer));
-      }
-    }
+  /* Read XL samples */
+  lis3dh_acceleration_raw_get(&dev_ctx, data_raw_acceleration);
+  acceleration_mg[0] =
+      lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[0]);
+  acceleration_mg[1] =
+      lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[1]);
+  acceleration_mg[2] =
+      lis3dh_from_fs2_hr_to_mg(data_raw_acceleration[2]);
+  sprintf((char *)tx_buffer,
+          "Acceleration [mg]:%5.0f\t%5.0f\t%5.0f\r\n",
+          acceleration_mg[0], acceleration_mg[1], acceleration_mg[2]);
+  tx_com(tx_buffer, strlen((char const *)tx_buffer));
   }
 }
 

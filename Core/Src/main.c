@@ -22,6 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "lis3dh_example.h"
 
 /* USER CODE END Includes */
 
@@ -82,12 +83,10 @@ osThreadId_t accelServiceHandle;
 const osThreadAttr_t accelServiceTask_attributes = {
   .name = "accelerometer service",
   .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4 // TODO bigger stack??? check with watermark
+  .stack_size = 128 * 4 * 2
 };
-typedef enum {
-  INIT = 0,
-} accel_state_t;
-accel_state_t accel_state = INIT;
+
+accel_state_t accel_state = ACC_INIT;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -450,11 +449,14 @@ void AccelMachineState(void)
 {
   switch (accel_state)
   {
-  case INIT:
+  case ACC_RUNNING:
+    if (lis3dh_is_samples_ready())
+      lis3dh_read_fifo();
+    else
+      osDelay(100);
   break;
-
-  // TODO add more states according to datasheet
-
+  case ACC_INIT:
+  case ACC_ERROR:
   default:
   break;
   }
@@ -463,6 +465,7 @@ void AccelMachineState(void)
 void AccelServiceThread(void *argument)
 {
   (void) argument;
+  accel_state = lis3dh_init();
   for (;;)
   {
     AccelMachineState();

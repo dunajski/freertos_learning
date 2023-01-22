@@ -39,6 +39,12 @@ extern "C" {
 extern SPI_HandleTypeDef hspi1;
 
 extern UART_HandleTypeDef huart2;
+
+typedef enum {
+  ACC_INIT = 0, // Accelerometer initilization
+  ACC_RUNNING,  // Accelerometer working
+  ACC_ERROR,    // Accelerometer in error state
+} accel_state_t;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/

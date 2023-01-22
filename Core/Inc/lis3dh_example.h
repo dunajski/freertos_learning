@@ -12,10 +12,13 @@
 #include "stm32g0xx_hal.h"
 #include "lis3dh_reg.h"
 #include "main.h"
+#include <stdbool.h>
 
 #define CS_up_GPIO_Port SPI1_CS_GPIO_Port
 #define CS_up_Pin SPI1_CS_Pin
 
 void lis3dh_read_fifo(void);
+bool lis3dh_is_samples_ready(void);
+accel_state_t lis3dh_init(void);
 
 #endif /* INC_LIS3DH_EXAMPLE_H_ */
